@@ -1,0 +1,12 @@
+fastapi==0.115.0
+uvicorn==0.30.6
+sqlalchemy==2.0.31
+pyjwt==2.8.0
+bcrypt==4.2.0
+pydantic==2.8.2
+python-dateutil==2.8.2
+pydantic[email]
+python-multipart
+pytest==8.3.5
+pytest-cov==4.1.1
+httpx==0.28.1
