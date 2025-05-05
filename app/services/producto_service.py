@@ -1,5 +1,5 @@
 """
-Service for Producto operations.
+Servicio para operaciones de Producto.
 """
 from typing import List, Optional
 from fastapi import HTTPException
@@ -19,7 +19,7 @@ def get_productos(
     tipo: Optional[TipoProducto] = None,
     disponible: Optional[bool] = None
 ) -> List[Producto]:
-    """Get products with optional filters"""
+    """Obtener productos con filtros opcionales"""
     query = db.query(Producto)
     
     if categoria_id is not None:
@@ -34,26 +34,26 @@ def get_productos(
     return query.offset(skip).limit(limit).all()
 
 def get_producto_by_id(db: Session, producto_id: int) -> Producto:
-    """Get a specific product by ID"""
+    """Obtener un producto específico por ID"""
     producto = db.query(Producto).filter(Producto.id == producto_id).first()
     if producto is None:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     return producto
 
 def create_producto(db: Session, producto: ProductoCreate) -> Producto:
-    """Create a new product"""
-    # Verify category exists
+    """Crear un nuevo producto"""
+    # Verificar si la categoría existe
     categoria = db.query(Categoria).filter(Categoria.id == producto.categoria_id).first()
     if categoria is None:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
     
-    # Create product
+    # Crear producto
     db_producto = Producto(**producto.model_dump())
     db.add(db_producto)
     db.commit()
     db.refresh(db_producto)
     
-    # Notify via WebSockets
+    # Notificar via WebSockets
     mensaje = {
         "tipo": "actualizacion_menu",
         "accion": "crear",
@@ -65,23 +65,23 @@ def create_producto(db: Session, producto: ProductoCreate) -> Producto:
     return db_producto
 
 def update_producto(db: Session, producto_id: int, producto: ProductoUpdate) -> Producto:
-    """Update a product"""
+    """Actualizar un producto"""
     db_producto = get_producto_by_id(db, producto_id)
     
-    # Verify category if changing
+    # Verificar categoría si se está cambiando
     if producto.categoria_id is not None:
         categoria = db.query(Categoria).filter(Categoria.id == producto.categoria_id).first()
         if categoria is None:
             raise HTTPException(status_code=404, detail="Categoría no encontrada")
     
-    # Update fields
+    # Actualizar campos
     for key, value in producto.model_dump(exclude_unset=True).items():
         setattr(db_producto, key, value)
     
     db.commit()
     db.refresh(db_producto)
     
-    # Notify via WebSockets
+    # Notificar via WebSockets
     mensaje = {
         "tipo": "actualizacion_menu",
         "accion": "actualizar",
@@ -93,10 +93,10 @@ def update_producto(db: Session, producto_id: int, producto: ProductoUpdate) -> 
     return db_producto
 
 def delete_producto(db: Session, producto_id: int) -> None:
-    """Delete a product"""
+    """Eliminar un producto"""
     db_producto = get_producto_by_id(db, producto_id)
     
-    # Check if product is in active orders
+    # Verificar si el producto está en pedidos activos
     from app.models.pedido import DetallePedido, Pedido
     from app.core.enums import EstadoPedido
     
@@ -111,11 +111,11 @@ def delete_producto(db: Session, producto_id: int) -> None:
             detail=f"No se puede eliminar el producto porque está en {pedidos_activos} pedidos activos"
         )
     
-    # Delete product
+    # Eliminar producto
     db.delete(db_producto)
     db.commit()
     
-    # Notify via WebSockets
+    # Notificar via WebSockets
     mensaje = {
         "tipo": "actualizacion_menu",
         "accion": "eliminar",

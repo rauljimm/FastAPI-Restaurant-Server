@@ -6,7 +6,7 @@
 
 ## 📋 Descripción
 
-Un completo sistema de gestión para restaurantes desarrollado con FastAPI que permite administrar mesas, reservas, pedidos, productos, categorías y usuarios con diferentes roles y permisos.
+Un completo sistema de gestión para restaurantes desarrollado con FastAPI que permite administrar mesas, reservas, pedidos, productos, categorías y usuarios con diferentes roles y permisos. Incluye una integración completa con la aplicación Android FrontRestaurante.
 
 ## ✨ Características
 
@@ -18,6 +18,7 @@ Un completo sistema de gestión para restaurantes desarrollado con FastAPI que p
 - 📝 **Pedidos**: Sistema completo de pedidos con estados (recibido, en preparación, listo, entregado, cancelado)
 - 📅 **Reservas**: Sistema de reservas con confirmación y gestión de disponibilidad
 - 🔄 **WebSockets**: Notificaciones en tiempo real para pedidos y cocina
+- 📱 **Integración con Android**: Backend completo para la app FrontRestaurante
 
 ## 🔑 Roles y Permisos
 
@@ -26,6 +27,7 @@ Un completo sistema de gestión para restaurantes desarrollado con FastAPI que p
 - Gestión de usuarios, productos, categorías, mesas y reservas
 - Visualización de informes y estadísticas
 - Cambio de estado de cualquier pedido, mesa o reserva
+- Creación de nuevos productos y mesas
 
 ### 🧑‍🍳 Camarero
 - Gestión de mesas (ver estado, cambiar a libre/ocupada/reservada)
@@ -33,7 +35,9 @@ Un completo sistema de gestión para restaurantes desarrollado con FastAPI que p
 - Marcado de pedidos como entregados
 - Visualización de pedidos propios
 - Creación de reservas
+- Eliminación de reservas completadas o canceladas
 - Cierre de servicio de mesa (cobro)
+- Acceso a categorías y productos para visualización
 
 ### 👨‍🍳 Cocinero
 - Visualización de pedidos pendientes
@@ -44,6 +48,7 @@ Un completo sistema de gestión para restaurantes desarrollado con FastAPI que p
 
 ### 🔐 Autenticación
 - `POST /token`: Obtener token de acceso
+- `POST /login`: Iniciar sesión (JSON)
 
 ### 👥 Usuarios
 - `GET /usuarios/`: Listar usuarios (admin)
@@ -71,6 +76,7 @@ Un completo sistema de gestión para restaurantes desarrollado con FastAPI que p
 - `GET /mesas/`: Listar mesas (filtrable por estado)
 - `POST /mesas/`: Crear mesa (admin)
 - `GET /mesas/{id}`: Obtener mesa por ID
+- `GET /mesas/{id}/reserva-activa`: Obtener reserva activa de una mesa (camarero/admin)
 - `PUT /mesas/{id}`: Actualizar mesa (admin/camarero)
 - `DELETE /mesas/{id}`: Eliminar mesa (admin)
 
@@ -88,7 +94,7 @@ Un completo sistema de gestión para restaurantes desarrollado con FastAPI que p
 - `POST /reservas/`: Crear reserva
 - `GET /reservas/{id}`: Obtener reserva por ID
 - `PUT /reservas/{id}`: Actualizar reserva
-- `DELETE /reservas/{id}`: Eliminar reserva (admin)
+- `DELETE /reservas/{id}`: Eliminar reserva (admin/camarero)
 
 ## 🛠️ Tecnologías
 
@@ -123,19 +129,12 @@ Un completo sistema de gestión para restaurantes desarrollado con FastAPI que p
 
 4. Configurar variables de entorno (crear archivo `.env` basado en `.env.example`)
 
-5. Ejecutar migraciones:
-   ```bash
-   alembic upgrade head
-   ```
-
-6. Iniciar el servidor:
+5. Ejecutar la aplicación:
    ```bash
    python run.py
-   # O:
-   uvicorn app.main:app --reload
    ```
 
-7. Acceder a la documentación: http://localhost:8000/docs
+6. Acceder a la documentación: http://localhost:8000/docs
 
 ## 🧪 Pruebas
 
@@ -144,13 +143,13 @@ El proyecto incluye una amplia suite de pruebas automatizadas que cubren todos l
 Para ejecutar las pruebas:
 
 ```bash
-pytest app/tests/
+python -m pytest app/tests/
 ```
 
-Para ejecutar pruebas con cobertura:
+Para ejecutar pruebas específicas:
 
 ```bash
-pytest --cov=app app/tests/
+python -m pytest app/tests/test_reservas.py -v
 ```
 
 ## 📊 Estructura del Proyecto
@@ -181,6 +180,7 @@ app/
 8. Marcar pedido como entregado
 9. Al finalizar el servicio, generar la cuenta
 10. Cerrar la mesa (cambiar estado a "libre")
+11. Gestionar reservas (crear, consultar, eliminar)
 
 ### 👨‍🍳 **Cocinero**:
 1. Iniciar sesión en el sistema
@@ -194,7 +194,13 @@ app/
 
 Este backend está diseñado para funcionar con la aplicación Android FrontRestaurante, que proporciona una interfaz de usuario completa para camareros, cocineros y administradores.
 
-Consulta el README de FrontRestaurante para más información sobre la aplicación Android.
+La integración incluye:
+- Autenticación mediante JWT
+- Sincronización de datos en tiempo real
+- Gestión completa de mesas, pedidos y reservas
+- Permisos específicos por rol
+
+Consulta el [README de FrontRestaurante](./FrontRestaurante/README.md) para más información sobre la aplicación Android.
 
 ## 📧 Contacto
 

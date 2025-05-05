@@ -1,5 +1,5 @@
 """
-Authentication dependencies for API endpoints.
+Dependencias de autenticación para los endpoints de la API.
 """
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -17,7 +17,7 @@ from app.core.config import JWT_SECRET_KEY, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_M
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=TOKEN_URL)
 
 def crear_token_acceso(data: dict, expires_delta: timedelta = None):
-    """Create a new access token"""
+    """Crear un nuevo token de acceso"""
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(UTC) + expires_delta
@@ -28,7 +28,7 @@ def crear_token_acceso(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 def get_usuario_actual(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    """Get the current authenticated user"""
+    """Obtener el usuario autenticado actual"""
     credenciales_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="No se pudieron validar las credenciales",
@@ -50,7 +50,7 @@ def get_usuario_actual(db: Session = Depends(get_db), token: str = Depends(oauth
     return usuario
 
 def get_admin_actual(usuario_actual: Usuario = Depends(get_usuario_actual)):
-    """Verify the current user is an admin"""
+    """Verificar si el usuario actual es un administrador"""
     if usuario_actual.rol != RolUsuario.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -59,7 +59,7 @@ def get_admin_actual(usuario_actual: Usuario = Depends(get_usuario_actual)):
     return usuario_actual
 
 def get_camarero_actual(usuario_actual: Usuario = Depends(get_usuario_actual)):
-    """Verify the current user is a waiter or admin"""
+    """Verificar si el usuario actual es un camarero o administrador"""
     if usuario_actual.rol != RolUsuario.CAMARERO and usuario_actual.rol != RolUsuario.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -68,7 +68,7 @@ def get_camarero_actual(usuario_actual: Usuario = Depends(get_usuario_actual)):
     return usuario_actual
 
 def get_cocinero_actual(usuario_actual: Usuario = Depends(get_usuario_actual)):
-    """Verify the current user is a cook or admin"""
+    """Verificar si el usuario actual es un cocinero o administrador"""
     if usuario_actual.rol != RolUsuario.COCINERO and usuario_actual.rol != RolUsuario.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

@@ -1,5 +1,5 @@
 """
-Tests for product management endpoints.
+Tests para los endpoints de gestión de productos.
 """
 import pytest
 from fastapi import status
@@ -7,7 +7,7 @@ from app.core.enums import TipoProducto
 
 @pytest.fixture
 def categoria(client, admin_user):
-    """Create a test category and return its data."""
+    """Crear una categoría de prueba y devolver sus datos."""
     categoria_data = {
         "nombre": "Test Categoria",
         "descripcion": "Categoria para pruebas"
@@ -22,7 +22,7 @@ def categoria(client, admin_user):
 
 @pytest.fixture
 def producto(client, admin_user, categoria):
-    """Create a test product and return its data."""
+    """Crear un producto de prueba y devolver sus datos."""
     producto_data = {
         "nombre": "Test Producto",
         "descripcion": "Producto para pruebas",
@@ -42,7 +42,7 @@ def producto(client, admin_user, categoria):
 
 class TestProductos:
     def test_create_producto(self, client, admin_user, categoria):
-        """Test creating a new product."""
+        """Probar la creación de un nuevo producto."""
         producto_data = {
             "nombre": "Nuevo Producto",
             "descripcion": "Un producto de prueba",
@@ -64,7 +64,7 @@ class TestProductos:
         assert "id" in response.json()
 
     def test_create_producto_categoria_inexistente(self, client, admin_user):
-        """Test creating a product with a non-existent category."""
+        """Probar la creación de un producto con una categoría inexistente."""
         producto_data = {
             "nombre": "Producto Invalido",
             "precio": 12.99,
@@ -81,7 +81,7 @@ class TestProductos:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_create_producto_unauthorized(self, client, camarero_user, categoria):
-        """Test that non-admin users cannot create products."""
+        """Probar que los usuarios no administradores no pueden crear productos."""
         producto_data = {
             "nombre": "Producto No Autorizado",
             "precio": 7.99,
@@ -98,8 +98,8 @@ class TestProductos:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_get_productos(self, client, admin_user, camarero_user, producto):
-        """Test getting all products."""
-        # Admin request
+        """Probar la obtención de todos los productos."""
+        # Petición de admin
         response = client.get(
             "/productos/",
             headers={"Authorization": f"Bearer {admin_user['token']}"}
@@ -107,14 +107,14 @@ class TestProductos:
         assert response.status_code == status.HTTP_200_OK
         assert len(response.json()) >= 1
         
-        # Camarero request
+        # Petición de camarero
         response = client.get(
             "/productos/",
             headers={"Authorization": f"Bearer {camarero_user['token']}"}
         )
         assert response.status_code == status.HTTP_200_OK
         
-        # Test with filters
+        # Probar con filtros
         response = client.get(
             f"/productos/?categoria_id={producto['categoria_id']}&tipo={producto['tipo']}",
             headers={"Authorization": f"Bearer {admin_user['token']}"}
@@ -123,7 +123,7 @@ class TestProductos:
         assert len(response.json()) >= 1
         assert response.json()[0]["categoria_id"] == producto["categoria_id"]
         
-        # Test with disponible filter
+        # Probar con filtro de disponibilidad
         response = client.get(
             "/productos/?disponible=true",
             headers={"Authorization": f"Bearer {admin_user['token']}"}
@@ -132,7 +132,7 @@ class TestProductos:
         assert all(p["disponible"] for p in response.json())
 
     def test_get_producto_by_id(self, client, admin_user, producto):
-        """Test getting a specific product by ID."""
+        """Probar la obtención de un producto específico por ID."""
         response = client.get(
             f"/productos/{producto['id']}",
             headers={"Authorization": f"Bearer {admin_user['token']}"}
@@ -140,10 +140,10 @@ class TestProductos:
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["id"] == producto["id"]
         assert response.json()["nombre"] == producto["nombre"]
-        assert "categoria" in response.json()  # Check that it returns the detailed product with category info
+        assert "categoria" in response.json()  # Verificar que devuelve el producto detallado con información de categoría
 
     def test_update_producto(self, client, admin_user, producto):
-        """Test updating a product."""
+        """Probar la actualización de un producto."""
         update_data = {
             "nombre": "Producto Actualizado",
             "precio": 19.99,
@@ -160,7 +160,7 @@ class TestProductos:
         assert response.json()["disponible"] == False
 
     def test_update_producto_unauthorized(self, client, camarero_user, producto):
-        """Test that non-admin users cannot update products."""
+        """Probar que los usuarios no administradores no pueden actualizar productos."""
         update_data = {
             "nombre": "Intento No Autorizado"
         }
@@ -172,8 +172,8 @@ class TestProductos:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_delete_producto(self, client, admin_user, categoria):
-        """Test deleting a product."""
-        # Create a product to delete
+        """Probar la eliminación de un producto."""
+        # Crear un producto para eliminar
         producto_data = {
             "nombre": "Producto para eliminar",
             "precio": 5.99,
@@ -189,14 +189,14 @@ class TestProductos:
         )
         producto_id = create_response.json()["id"]
         
-        # Delete the product
+        # Eliminar el producto
         response = client.delete(
             f"/productos/{producto_id}",
             headers={"Authorization": f"Bearer {admin_user['token']}"}
         )
         assert response.status_code == status.HTTP_204_NO_CONTENT
         
-        # Verify the product is deleted
+        # Verificar que el producto ha sido eliminado
         get_response = client.get(
             f"/productos/{producto_id}",
             headers={"Authorization": f"Bearer {admin_user['token']}"}
@@ -204,7 +204,7 @@ class TestProductos:
         assert get_response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_delete_producto_unauthorized(self, client, camarero_user, producto):
-        """Test that non-admin users cannot delete products."""
+        """Probar que los usuarios no administradores no pueden eliminar productos."""
         response = client.delete(
             f"/productos/{producto['id']}",
             headers={"Authorization": f"Bearer {camarero_user['token']}"}

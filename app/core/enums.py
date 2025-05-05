@@ -1,5 +1,5 @@
 """
-Enumerations used throughout the application.
+Enumeraciones utilizadas en toda la aplicación.
 """
 from enum import Enum
 
@@ -23,6 +23,8 @@ class EstadoReserva(str, Enum):
     CONFIRMADA = "confirmada"
     CANCELADA = "cancelada"
     COMPLETADA = "completada"
+    CLIENTE_LLEGO = "cliente_llego"
+    CLIENTE_NO_LLEGO = "cliente_no_llego"
 
 class EstadoMesa(str, Enum):
     """Estados posibles de una mesa"""

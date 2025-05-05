@@ -1,5 +1,5 @@
 """
-User management endpoints.
+Endpoints de gestión de usuarios.
 """
 from typing import List
 from fastapi import APIRouter, Depends, status, HTTPException
@@ -25,7 +25,7 @@ def create_usuario(
     admin: Usuario = Depends(get_admin_actual)
 ):
     """
-    Create a new user. (Admin only)
+    Crear un nuevo usuario. (Admin only)
     """
     return usuario_service.create_usuario(db=db, usuario=usuario)
 
@@ -37,7 +37,7 @@ def read_usuarios(
     admin: Usuario = Depends(get_admin_actual)
 ):
     """
-    Get all users. (Admin only)
+    Obtener todos los usuarios. (Admin only)
     """
     usuarios = usuario_service.get_usuarios(db, skip=skip, limit=limit)
     return usuarios
@@ -45,7 +45,7 @@ def read_usuarios(
 @router.get("/me", response_model=UsuarioResponse)
 def read_user_me(current_user: Usuario = Depends(get_usuario_actual)):
     """
-    Get current user information.
+    Obtener información del usuario actual.
     """
     return current_user
 
@@ -56,11 +56,11 @@ def read_usuario(
     current_user: Usuario = Depends(get_usuario_actual)
 ):
     """
-    Get a specific user by ID.
-    - Users can get their own information
-    - Admins can get any user's information
+    Obtener un usuario específico por ID.
+    - Los usuarios pueden obtener su propia información
+    - Los administradores pueden obtener la información de cualquier usuario
     """
-    # Users can only see their own info unless they're admins
+    # Los usuarios solo pueden ver su propia información a menos que sean administradores
     if current_user.id != usuario_id and current_user.rol != RolUsuario.ADMIN:
         return get_admin_actual(current_user)
     
@@ -78,9 +78,9 @@ def update_usuario(
     current_user: Usuario = Depends(get_usuario_actual)
 ):
     """
-    Update a user.
-    - Users can update their own information (except role)
-    - Admins can update any user's information
+    Actualizar un usuario.
+    - Los usuarios pueden actualizar su propia información (excepto rol)
+    - Los administradores pueden actualizar la información de cualquier usuario
     """
     is_admin = current_user.rol == RolUsuario.ADMIN
     return usuario_service.update_usuario(
@@ -98,7 +98,7 @@ def delete_usuario(
     admin: Usuario = Depends(get_admin_actual)
 ):
     """
-    Delete a user. (Admin only)
+    Eliminar un usuario. (Admin only)
     """
     usuario_service.delete_usuario(db=db, usuario_id=usuario_id)
-    return {}  # Return empty dict instead of None to avoid validation errors 
+    return {}  # Devolver un diccionario vacío en lugar de None para evitar errores de validación 

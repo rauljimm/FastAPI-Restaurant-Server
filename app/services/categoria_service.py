@@ -26,12 +26,12 @@ def get_categoria_by_nombre(db: Session, nombre: str) -> Optional[Categoria]:
 
 def create_categoria(db: Session, categoria: CategoriaCreate) -> Categoria:
     """Crear una nueva categoría"""
-    # Check if category already exists
+    # Verificar si la categoría ya existe
     db_categoria = get_categoria_by_nombre(db, categoria.nombre)
     if db_categoria:
         raise HTTPException(status_code=400, detail="La categoría ya existe")
     
-    # Create category
+    # Crear categoría
     db_categoria = Categoria(**categoria.model_dump())
     db.add(db_categoria)
     db.commit()
@@ -42,7 +42,7 @@ def update_categoria(db: Session, categoria_id: int, categoria: CategoriaUpdate)
     """Actualizar una categoría"""
     db_categoria = get_categoria_by_id(db, categoria_id)
     
-    # Check if new name is unique
+    # Verificar si el nuevo nombre es único
     if categoria.nombre is not None:
         nombre_existente = db.query(Categoria).filter(
             Categoria.nombre == categoria.nombre,
@@ -52,7 +52,7 @@ def update_categoria(db: Session, categoria_id: int, categoria: CategoriaUpdate)
             raise HTTPException(status_code=400, detail="El nombre de categoría ya existe")
         db_categoria.nombre = categoria.nombre
     
-    # Update description if provided
+    # Actualizar descripción si se proporciona
     if categoria.descripcion is not None:
         db_categoria.descripcion = categoria.descripcion
     
@@ -64,7 +64,7 @@ def delete_categoria(db: Session, categoria_id: int) -> None:
     """Eliminar una categoría"""
     db_categoria = get_categoria_by_id(db, categoria_id)
     
-    # Check if products are associated with this category
+    # Verificar si hay productos asociados a esta categoría
     productos_asociados = db.query(Producto).filter(
         Producto.categoria_id == categoria_id
     ).count()

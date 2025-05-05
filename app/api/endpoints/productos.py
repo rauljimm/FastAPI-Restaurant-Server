@@ -1,5 +1,5 @@
 """
-Product management endpoints.
+Endpoints de gestión de productos.
 """
 from typing import List, Optional
 from fastapi import APIRouter, Depends, status, Query
@@ -9,13 +9,12 @@ from app.db.database import get_db
 from app.models.usuario import Usuario
 from app.schemas.producto import ProductoCreate, ProductoUpdate, ProductoResponse, ProductoDetallado
 from app.services import producto_service
-from app.api.dependencies.auth import get_usuario_actual, get_admin_actual
+from app.api.dependencies.auth import get_usuario_actual, get_admin_actual, get_camarero_actual
 from app.core.enums import TipoProducto
 
 router = APIRouter(
     prefix="/productos",
-    tags=["productos"],
-    dependencies=[Depends(get_usuario_actual)]
+    tags=["productos"]
 )
 
 @router.post("/", response_model=ProductoResponse, status_code=status.HTTP_201_CREATED)
@@ -25,7 +24,7 @@ def create_producto(
     admin: Usuario = Depends(get_admin_actual)
 ):
     """
-    Create a new product. (Admin only)
+    Crear un nuevo producto. (Admin only)
     """
     return producto_service.create_producto(db=db, producto=producto)
 
@@ -36,11 +35,10 @@ def read_productos(
     categoria_id: Optional[int] = None,
     tipo: Optional[TipoProducto] = None,
     disponible: Optional[bool] = None,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_usuario_actual)
+    db: Session = Depends(get_db)
 ):
     """
-    Get all products with optional filters.
+    Obtener todos los productos con filtros opcionales. (Acceso público para pruebas)
     """
     productos = producto_service.get_productos(
         db, 
@@ -55,11 +53,10 @@ def read_productos(
 @router.get("/{producto_id}", response_model=ProductoDetallado)
 def read_producto(
     producto_id: int,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_usuario_actual)
+    db: Session = Depends(get_db)
 ):
     """
-    Get a specific product by ID including its category.
+    Obtener un producto específico por ID incluyendo su categoría. (Acceso público para pruebas)
     """
     return producto_service.get_producto_by_id(db, producto_id=producto_id)
 
@@ -71,7 +68,7 @@ def update_producto(
     admin: Usuario = Depends(get_admin_actual)
 ):
     """
-    Update a product. (Admin only)
+    Actualizar un producto. (Admin only)
     """
     return producto_service.update_producto(db=db, producto_id=producto_id, producto=producto)
 
@@ -82,7 +79,7 @@ def delete_producto(
     admin: Usuario = Depends(get_admin_actual)
 ):
     """
-    Delete a product. (Admin only)
+    Eliminar un producto. (Admin only)
     """
     producto_service.delete_producto(db=db, producto_id=producto_id)
     return {} 

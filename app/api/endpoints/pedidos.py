@@ -1,5 +1,5 @@
 """
-Order management endpoints.
+Endpoints de gestión de pedidos.
 """
 from typing import List, Optional
 from fastapi import APIRouter, Depends, status, Query
@@ -29,7 +29,7 @@ def create_pedido(
     camarero: Usuario = Depends(get_camarero_actual)
 ):
     """
-    Create a new order with details. (Waiters/Admins only)
+    Crear un nuevo pedido con detalles. (Camareros/Administradores solo)
     """
     return pedido_service.create_pedido(db=db, pedido=pedido, camarero_id=camarero.id)
 
@@ -42,16 +42,25 @@ def read_pedidos(
     fecha_fin: Optional[datetime] = None,
     mesa_id: Optional[int] = None,
     camarero_id: Optional[int] = None,
+    activos: Optional[bool] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_usuario_actual)
 ):
     """
-    Get all orders with optional filters.
-    - Waiters can only see their own orders
-    - Admins can see all orders or filter by waiter
-    - Cooks can see all orders
+    Obtener todos los pedidos con filtros opcionales.
+    - Los camareros solo pueden ver sus propios pedidos
+    - Los administradores pueden ver todos los pedidos o filtrar por camarero
+    - Los cocineros pueden ver todos los pedidos
+    - Si activos=True, solo se muestran pedidos en estado distinto a ENTREGADO y CANCELADO
     """
-    return pedido_service.get_pedidos(
+    if activos is True:
+        estados_activos = [estado for estado in EstadoPedido if estado not in [EstadoPedido.ENTREGADO, EstadoPedido.CANCELADO]]
+        if estado is not None and estado not in estados_activos:
+            return []
+        elif estado is None:
+            estado = None
+    
+    pedidos = pedido_service.get_pedidos(
         db, 
         skip=skip, 
         limit=limit,
@@ -62,6 +71,11 @@ def read_pedidos(
         camarero_id=camarero_id,
         current_user=current_user
     )
+    
+    if activos is True and estado is None:
+        pedidos = [p for p in pedidos if p.estado not in [EstadoPedido.ENTREGADO, EstadoPedido.CANCELADO]]
+    
+    return pedidos
 
 @router.get("/{pedido_id}", response_model=PedidoDetallado)
 def read_pedido(
@@ -70,9 +84,9 @@ def read_pedido(
     current_user: Usuario = Depends(get_usuario_actual)
 ):
     """
-    Get a specific order by ID with all its details.
-    - Waiters can only see their own orders
-    - Admins and Cooks can see any order
+    Obtener un pedido específico por ID con todos sus detalles.
+    - Los camareros solo pueden ver sus propios pedidos
+    - Los administradores y cocineros pueden ver cualquier pedido
     """
     return pedido_service.get_pedido_by_id(db, pedido_id=pedido_id, current_user=current_user)
 
@@ -84,10 +98,10 @@ def update_pedido(
     current_user: Usuario = Depends(get_usuario_actual)
 ):
     """
-    Update an order's status or observations.
-    - Waiters can only update their own orders
-    - Cooks can only change status to 'en_preparacion' or 'listo'
-    - Admins can update any order
+    Actualizar el estado o observaciones de un pedido.
+    - Los camareros solo pueden actualizar sus propios pedidos
+    - Los cocineros solo pueden cambiar el estado a 'en_preparacion' o 'listo'
+    - Los administradores pueden actualizar cualquier pedido
     """
     return pedido_service.update_pedido(
         db=db, 
@@ -104,7 +118,7 @@ def create_detalle_pedido(
     camarero: Usuario = Depends(get_camarero_actual)
 ):
     """
-    Add a new item to an existing order. (Waiters/Admins only)
+    Añadir un nuevo elemento a un pedido existente. (Camareros/Administradores solo)
     """
     return pedido_service.create_detalle_pedido(
         db=db, 
@@ -122,10 +136,10 @@ def update_detalle_pedido(
     current_user: Usuario = Depends(get_usuario_actual)
 ):
     """
-    Update an order detail.
-    - Waiters can modify quantity and observations
-    - Cooks can only change status to 'en_preparacion' or 'listo'
-    - Admins can update any detail
+    Actualizar un detalle de un pedido.
+    - Los camareros pueden modificar la cantidad y observaciones
+    - Los cocineros solo pueden cambiar el estado a 'en_preparacion' o 'listo'
+    - Los administradores pueden actualizar cualquier detalle
     """
     return pedido_service.update_detalle_pedido(
         db=db, 
@@ -143,7 +157,7 @@ def delete_detalle_pedido(
     camarero: Usuario = Depends(get_camarero_actual)
 ):
     """
-    Delete an item from an order. (Waiters/Admins only)
+    Eliminar un elemento de un pedido. (Camareros/Administradores solo)
     """
     pedido_service.delete_detalle_pedido(
         db=db, 

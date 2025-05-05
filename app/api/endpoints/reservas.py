@@ -1,5 +1,5 @@
 """
-Reservation management endpoints.
+Endpoints de gestión de reservas.
 """
 from typing import List, Optional
 from fastapi import APIRouter, Depends, status
@@ -10,7 +10,7 @@ from app.db.database import get_db
 from app.models.usuario import Usuario
 from app.schemas.reserva import ReservaCreate, ReservaUpdate, ReservaResponse, ReservaDetallada
 from app.services import reserva_service
-from app.api.dependencies.auth import get_usuario_actual, get_admin_actual
+from app.api.dependencies.auth import get_usuario_actual, get_admin_actual, get_camarero_actual
 from app.core.enums import EstadoReserva
 
 router = APIRouter(
@@ -26,7 +26,7 @@ def create_reserva(
     current_user: Usuario = Depends(get_usuario_actual)
 ):
     """
-    Create a new reservation.
+    Crear una nueva reserva.
     """
     return reserva_service.create_reserva(db=db, reserva=reserva)
 
@@ -42,7 +42,7 @@ def read_reservas(
     current_user: Usuario = Depends(get_usuario_actual)
 ):
     """
-    Get all reservations with optional filters.
+    Obtener todas las reservas con filtros opcionales.
     """
     return reserva_service.get_reservas(
         db, 
@@ -61,7 +61,7 @@ def read_reserva(
     current_user: Usuario = Depends(get_usuario_actual)
 ):
     """
-    Get a specific reservation by ID.
+    Obtener una reserva específica por ID.
     """
     return reserva_service.get_reserva_by_id(db, reserva_id=reserva_id)
 
@@ -73,7 +73,7 @@ def update_reserva(
     current_user: Usuario = Depends(get_usuario_actual)
 ):
     """
-    Update a reservation.
+    Actualizar una reserva.
     """
     return reserva_service.update_reserva(db=db, reserva_id=reserva_id, reserva=reserva)
 
@@ -81,10 +81,10 @@ def update_reserva(
 def delete_reserva(
     reserva_id: int,
     db: Session = Depends(get_db),
-    admin: Usuario = Depends(get_admin_actual)
+    current_user: Usuario = Depends(get_camarero_actual)
 ):
     """
-    Delete a reservation. (Admin only)
+    Eliminar una reserva. (Camareros y administradores)
     """
     reserva_service.delete_reserva(db=db, reserva_id=reserva_id)
     return {} 

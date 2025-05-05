@@ -1,5 +1,5 @@
 """
-Service for Reserva operations.
+Servicio para operaciones de Reserva.
 """
 from typing import List, Optional
 from fastapi import HTTPException
@@ -21,7 +21,7 @@ def get_reservas(
     fecha_fin: Optional[datetime] = None,
     mesa_id: Optional[int] = None
 ) -> List[Reserva]:
-    """Get reservations with optional filters"""
+    """Obtener reservas con filtros opcionales"""
     query = db.query(Reserva)
     
     if estado is not None:
@@ -42,49 +42,49 @@ def get_reservas(
     return query.offset(skip).limit(limit).all()
 
 def get_reserva_by_id(db: Session, reserva_id: int) -> Reserva:
-    """Get a specific reservation by ID"""
+    """Obtener una reserva específica por ID"""
     reserva = db.query(Reserva).filter(Reserva.id == reserva_id).first()
     if reserva is None:
         raise HTTPException(status_code=404, detail="Reserva no encontrada")
     return reserva
 
 def create_reserva(db: Session, reserva: ReservaCreate) -> Reserva:
-    """Create a new reservation"""
-    # Check if reservation date is in the future
+    """Crear una nueva reserva"""
+    # Verificar si la fecha de reserva es en el futuro
     if reserva.fecha <= datetime.now(UTC):
         raise HTTPException(
             status_code=400,
             detail="La fecha de reserva debe ser en el futuro"
         )
     
-    # Check if number of people is valid
+    # Verificar si el número de personas es válido
     if reserva.num_personas <= 0:
         raise HTTPException(
             status_code=400,
             detail="El número de personas debe ser mayor que cero"
         )
     
-    # Check if duration is valid
+    # Verificar si la duración es válida
     if reserva.duracion and reserva.duracion <= 0:
         raise HTTPException(
             status_code=400,
             detail="La duración debe ser mayor que cero"
         )
     
-    # If table is specified, check if it exists and is available
+    # Si se especifica una mesa, verificar si existe y está disponible
     if reserva.mesa_id is not None:
         mesa = db.query(Mesa).filter(Mesa.id == reserva.mesa_id).first()
         if mesa is None:
             raise HTTPException(status_code=404, detail="Mesa no encontrada")
         
-        # Check table capacity
+        # Verificar la capacidad de la mesa
         if mesa.capacidad < reserva.num_personas:
             raise HTTPException(
                 status_code=400,
                 detail="La mesa no tiene suficiente capacidad para el número de personas"
             )
         
-        # Check table availability for the requested time slot
+        # Verificar la disponibilidad de la mesa para el horario solicitado
         fecha_fin = reserva.fecha + timedelta(minutes=reserva.duracion or 120)
         reservas_conflictivas = db.query(Reserva).filter(
             Reserva.mesa_id == reserva.mesa_id,
@@ -99,19 +99,19 @@ def create_reserva(db: Session, reserva: ReservaCreate) -> Reserva:
                 detail="La mesa ya está reservada en el horario solicitado"
             )
     
-    # Create reservation
+    # Crear reserva
     db_reserva = Reserva(**reserva.model_dump())
     db.add(db_reserva)
     db.commit()
     db.refresh(db_reserva)
     
-    # Update table status if assigned
+    # Actualizar el estado de la mesa si se asigna
     if reserva.mesa_id is not None:
         mesa = db.query(Mesa).filter(Mesa.id == reserva.mesa_id).first()
         mesa.estado = EstadoMesa.RESERVADA
         db.commit()
     
-    # Notify administrators about new reservation
+    # Notificar a los administradores sobre la nueva reserva
     if reserva.mesa_id is not None:
         mesa = db.query(Mesa).filter(Mesa.id == reserva.mesa_id).first()
         mesa_numero = mesa.numero
@@ -131,24 +131,24 @@ def create_reserva(db: Session, reserva: ReservaCreate) -> Reserva:
     return db_reserva
 
 def update_reserva(db: Session, reserva_id: int, reserva: ReservaUpdate) -> Reserva:
-    """Update a reservation"""
+    """Actualizar una reserva"""
     db_reserva = get_reserva_by_id(db, reserva_id)
     
-    # Check if new date is in the future
+    # Verificar si la nueva fecha es en el futuro
     if reserva.fecha is not None and reserva.fecha <= datetime.now(UTC):
         raise HTTPException(
             status_code=400,
             detail="La fecha de reserva debe ser en el futuro"
         )
     
-    # Check table if changing
+    # Verificar si la mesa está cambiando
     mesa_anterior_id = db_reserva.mesa_id
     if reserva.mesa_id is not None:
         mesa = db.query(Mesa).filter(Mesa.id == reserva.mesa_id).first()
         if mesa is None:
             raise HTTPException(status_code=404, detail="Mesa no encontrada")
         
-        # Check capacity
+        # Verificar la capacidad
         num_personas = reserva.num_personas if reserva.num_personas is not None else db_reserva.num_personas
         if mesa.capacidad < num_personas:
             raise HTTPException(
@@ -156,7 +156,7 @@ def update_reserva(db: Session, reserva_id: int, reserva: ReservaUpdate) -> Rese
                 detail="La mesa no tiene suficiente capacidad"
             )
         
-        # Check availability
+        # Verificar la disponibilidad
         fecha = reserva.fecha if reserva.fecha is not None else db_reserva.fecha
         duracion = reserva.duracion if reserva.duracion is not None else db_reserva.duracion
         fecha_fin = fecha + timedelta(minutes=duracion)
@@ -174,20 +174,20 @@ def update_reserva(db: Session, reserva_id: int, reserva: ReservaUpdate) -> Rese
                 detail="La mesa ya está reservada en el horario solicitado"
             )
     
-    # Update fields
+    # Actualizar campos
     for key, value in reserva.model_dump(exclude_unset=True).items():
         setattr(db_reserva, key, value)
     
-    # Update table status if necessary
+    # Actualizar el estado de la mesa si es necesario
     if reserva.mesa_id is not None and reserva.mesa_id != mesa_anterior_id:
-        # Update new table
+        # Actualizar la nueva mesa
         mesa = db.query(Mesa).filter(Mesa.id == reserva.mesa_id).first()
         mesa.estado = EstadoMesa.RESERVADA
         
-        # Free previous table if it existed
+        # Liberar la mesa anterior si existía
         if mesa_anterior_id is not None:
             mesa_anterior = db.query(Mesa).filter(Mesa.id == mesa_anterior_id).first()
-            # Check if previous table has other active reservations
+            # Verificar si la mesa anterior tiene otras reservas activas
             reservas_activas = db.query(Reserva).filter(
                 Reserva.mesa_id == mesa_anterior_id,
                 Reserva.id != reserva_id,
@@ -197,8 +197,8 @@ def update_reserva(db: Session, reserva_id: int, reserva: ReservaUpdate) -> Rese
             if reservas_activas == 0:
                 mesa_anterior.estado = EstadoMesa.LIBRE
     
-    # If reservation is canceled or completed, free the table
-    if reserva.estado in [EstadoReserva.CANCELADA, EstadoReserva.COMPLETADA] and db_reserva.mesa_id is not None:
+    # Si la reserva está cancelada, completada o el cliente no llegó, liberar la mesa
+    if reserva.estado in [EstadoReserva.CANCELADA, EstadoReserva.COMPLETADA, EstadoReserva.CLIENTE_NO_LLEGO] and db_reserva.mesa_id is not None:
         mesa = db.query(Mesa).filter(Mesa.id == db_reserva.mesa_id).first()
         reservas_activas = db.query(Reserva).filter(
             Reserva.mesa_id == db_reserva.mesa_id,
@@ -209,10 +209,15 @@ def update_reserva(db: Session, reserva_id: int, reserva: ReservaUpdate) -> Rese
         if reservas_activas == 0:
             mesa.estado = EstadoMesa.LIBRE
     
+    # Si el cliente llegó, cambiamos el estado de la mesa a ocupada
+    if reserva.estado == EstadoReserva.CLIENTE_LLEGO and db_reserva.mesa_id is not None:
+        mesa = db.query(Mesa).filter(Mesa.id == db_reserva.mesa_id).first()
+        mesa.estado = EstadoMesa.OCUPADA
+    
     db.commit()
     db.refresh(db_reserva)
     
-    # Notify administrators about update
+    # Notificar a los administradores sobre la actualización
     mesa_numero = None
     if db_reserva.mesa_id:
         mesa = db.query(Mesa).filter(Mesa.id == db_reserva.mesa_id).first()
@@ -232,10 +237,10 @@ def update_reserva(db: Session, reserva_id: int, reserva: ReservaUpdate) -> Rese
     return db_reserva
 
 def delete_reserva(db: Session, reserva_id: int) -> None:
-    """Delete a reservation"""
+    """Eliminar una reserva"""
     db_reserva = get_reserva_by_id(db, reserva_id)
     
-    # Free the table if assigned
+    # Liberar la mesa si está asignada
     if db_reserva.mesa_id is not None:
         mesa = db.query(Mesa).filter(Mesa.id == db_reserva.mesa_id).first()
         reservas_activas = db.query(Reserva).filter(
@@ -247,7 +252,7 @@ def delete_reserva(db: Session, reserva_id: int) -> None:
         if reservas_activas == 0:
             mesa.estado = EstadoMesa.LIBRE
     
-    # Save information for notification
+    # Guardar información para la notificación
     cliente = f"{db_reserva.cliente_nombre} {db_reserva.cliente_apellido}"
     fecha = db_reserva.fecha.isoformat()
     mesa_numero = None
@@ -257,7 +262,7 @@ def delete_reserva(db: Session, reserva_id: int) -> None:
     db.delete(db_reserva)
     db.commit()
     
-    # Notify administrators about deletion
+    # Notificar a los administradores sobre la eliminación
     mensaje = {
         "tipo": "eliminar_reserva",
         "reserva_id": reserva_id,

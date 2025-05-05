@@ -1,5 +1,5 @@
 """
-WebSocket connection management.
+Gestión de conexiones WebSocket.
 """
 import json
 import asyncio
@@ -16,10 +16,10 @@ logging.basicConfig(
 logger = logging.getLogger("restaurante")
 
 class ConnectionManager:
-    """Manages WebSocket connections for different client types"""
+    """Gestiona las conexiones WebSocket para diferentes tipos de clientes"""
     
     def __init__(self):
-        """Initialize the connection manager with empty lists for each client type"""
+        """Inicializa el administrador de conexiones con listas vacías para cada tipo de cliente"""
         self.active_connections: Dict[str, List[WebSocket]] = {
             "cocina": [],
             "camareros": [],
@@ -27,25 +27,25 @@ class ConnectionManager:
         }
 
     async def connect(self, websocket: WebSocket, client_type: str):
-        """Accept and store a new WebSocket connection"""
+        """Acepta y almacena una nueva conexión WebSocket"""
         await websocket.accept()
         if client_type in self.active_connections:
             self.active_connections[client_type].append(websocket)
             logger.info(f"Nueva conexión WebSocket: {client_type}")
 
     def disconnect(self, websocket: WebSocket, client_type: str):
-        """Remove a WebSocket connection"""
+        """Elimina una conexión WebSocket"""
         if client_type in self.active_connections:
             if websocket in self.active_connections[client_type]:
                 self.active_connections[client_type].remove(websocket)
                 logger.info(f"Desconexión WebSocket: {client_type}")
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
-        """Send a message to a specific WebSocket"""
+        """Envía un mensaje a un WebSocket específico"""
         await websocket.send_text(message)
 
     async def broadcast(self, message: str, client_type: str):
-        """Broadcast a message to all WebSockets of a specific client type"""
+        """Envía un mensaje a todos los WebSockets de un tipo de cliente específico"""
         if client_type in self.active_connections:
             for connection in self.active_connections[client_type]:
                 await connection.send_text(message)
@@ -57,7 +57,7 @@ class ConnectionManager:
             except json.JSONDecodeError:
                 logger.info(f"Mensaje enviado a {client_type}")
 
-# Create the connection manager instance
+# Crear la instancia del administrador de conexiones
 manager = ConnectionManager()
 
 def log_event(message: str, level: str = "info"):
@@ -80,8 +80,8 @@ def log_event(message: str, level: str = "info"):
 
 def safe_broadcast(message: Dict[str, Any], client_type: str):
     """
-    Safely broadcast a message to WebSocket clients.
-    Works in both synchronous and asynchronous contexts.
+    Envía un mensaje a todos los clientes WebSocket de un tipo específico de manera segura.
+    Funciona en ambos contextos sincrónicos y asincrónicos.
     """
     try:
         # Registrar el evento en logs
@@ -93,9 +93,9 @@ def safe_broadcast(message: Dict[str, Any], client_type: str):
         elif tipo == "nueva_reserva":
             log_event(f"Nueva reserva #{message.get('reserva_id')} para {message.get('cliente')} en Mesa {message.get('mesa')}")
         
-        # Try to get running loop and create a task
+        # Intentar obtener el bucle en ejecución y crear una tarea
         loop = asyncio.get_running_loop()
         loop.create_task(manager.broadcast(json.dumps(message), client_type))
     except RuntimeError:
-        # If no running loop, just pass - we're in a test or synchronous context
+        # Si no hay bucle en ejecución, simplemente pasa - estamos en un contexto de prueba o sincrónico
         pass 

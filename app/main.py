@@ -48,7 +48,7 @@ logger.debug("Tablas de base de datos creadas")
 
 # Import and include routers
 from app.api.endpoints import (
-    usuarios, categorias, productos, mesas, pedidos, reservas, auth, websockets
+    usuarios, categorias, productos, mesas, pedidos, reservas, cuentas, auth, websockets
 )
 
 app.include_router(auth.router)
@@ -58,6 +58,7 @@ app.include_router(productos.router)
 app.include_router(mesas.router)
 app.include_router(pedidos.router)
 app.include_router(reservas.router)
+app.include_router(cuentas.router)
 app.include_router(websockets.router)
 logger.debug("Routers configurados")
 

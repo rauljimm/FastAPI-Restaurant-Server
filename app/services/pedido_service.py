@@ -1,5 +1,5 @@
 """
-Service for Pedido operations.
+Servicio para operaciones de Pedido.
 """
 from typing import List, Optional
 from fastapi import HTTPException
@@ -26,10 +26,10 @@ def get_pedidos(
     camarero_id: Optional[int] = None,
     current_user: Usuario = None
 ) -> List[Pedido]:
-    """Get orders with optional filters"""
+    """Obtener pedidos con filtros opcionales"""
     query = db.query(Pedido)
     
-    # Apply filters
+    # Aplicar filtros
     if estado is not None:
         query = query.filter(Pedido.estado == estado)
     
@@ -42,29 +42,29 @@ def get_pedidos(
     if mesa_id is not None:
         query = query.filter(Pedido.mesa_id == mesa_id)
     
-    # Apply user-based filtering
+    # Aplicar filtrado por usuario
     if current_user is not None:
         from app.core.enums import RolUsuario
         
         if current_user.rol == RolUsuario.CAMARERO:
-            # Waiters can only see their own orders
+            # Los camareros solo pueden ver sus propios pedidos
             query = query.filter(Pedido.camarero_id == current_user.id)
         elif current_user.rol == RolUsuario.ADMIN and camarero_id is not None:
-            # Admins can filter by specific waiter
+            # Los administradores pueden filtrar por camarero específico
             query = query.filter(Pedido.camarero_id == camarero_id)
     
-    # Order by creation date (newest first)
+    # Ordenar por fecha de creación (últimos primero)
     query = query.order_by(Pedido.fecha_creacion.desc())
     
     return query.offset(skip).limit(limit).all()
 
 def get_pedido_by_id(db: Session, pedido_id: int, current_user: Usuario = None) -> Pedido:
-    """Get a specific order by ID"""
+    """Obtener un pedido específico por ID"""
     pedido = db.query(Pedido).filter(Pedido.id == pedido_id).first()
     if pedido is None:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
     
-    # Verify permissions
+    # Verificar permisos
     if current_user is not None:
         from app.core.enums import RolUsuario
         
@@ -77,21 +77,21 @@ def get_pedido_by_id(db: Session, pedido_id: int, current_user: Usuario = None) 
     return pedido
 
 def create_pedido(db: Session, pedido: PedidoCreate, camarero_id: int) -> Pedido:
-    """Create a new order"""
-    # Verify table exists
+    """Crear un nuevo pedido"""
+    # Verificar si la mesa existe
     mesa = db.query(Mesa).filter(Mesa.id == pedido.mesa_id).first()
     if mesa is None:
         raise HTTPException(status_code=404, detail="Mesa no encontrada")
     
-    # Check if table is available
+    # Verificar si la mesa está disponible
     if mesa.estado not in [EstadoMesa.LIBRE, EstadoMesa.OCUPADA]:
         raise HTTPException(status_code=400, detail="La mesa no está disponible")
     
-    # Check if there are products in the order
+    # Verificar si el pedido tiene productos
     if not pedido.detalles:
         raise HTTPException(status_code=400, detail="El pedido debe tener al menos un producto")
     
-    # Create order
+    # Crear pedido
     db_pedido = Pedido(
         mesa_id=pedido.mesa_id,
         camarero_id=camarero_id,
@@ -101,11 +101,11 @@ def create_pedido(db: Session, pedido: PedidoCreate, camarero_id: int) -> Pedido
     db.commit()
     db.refresh(db_pedido)
     
-    # Set table as occupied
+    # Establecer la mesa como ocupada
     mesa.estado = EstadoMesa.OCUPADA
     db.commit()
     
-    # Add order details
+    # Agregar detalles del pedido
     total_pedido = 0.0
     for detalle in pedido.detalles:
         db_producto = db.query(Producto).filter(
@@ -114,12 +114,12 @@ def create_pedido(db: Session, pedido: PedidoCreate, camarero_id: int) -> Pedido
         ).first()
         
         if db_producto is None:
-            # If product doesn't exist or is not available, delete the order
+            # Si el producto no existe o no está disponible, eliminar el pedido
             db.delete(db_pedido)
             db.commit()
             raise HTTPException(status_code=404, detail=f"Producto {detalle.producto_id} no encontrado o no disponible")
         
-        # Create order detail
+        # Crear detalle del pedido
         subtotal = db_producto.precio * detalle.cantidad
         db_detalle = DetallePedido(
             pedido_id=db_pedido.id,
@@ -132,12 +132,12 @@ def create_pedido(db: Session, pedido: PedidoCreate, camarero_id: int) -> Pedido
         db.add(db_detalle)
         total_pedido += subtotal
     
-    # Update order total
+    # Actualizar total del pedido
     db_pedido.total = total_pedido
     db.commit()
     db.refresh(db_pedido)
     
-    # Notify kitchen about new order
+    # Notificar a la cocina sobre el nuevo pedido
     camarero = db.query(Usuario).filter(Usuario.id == camarero_id).first()
     mensaje = {
         "tipo": "nuevo_pedido",
@@ -151,19 +151,19 @@ def create_pedido(db: Session, pedido: PedidoCreate, camarero_id: int) -> Pedido
     return db_pedido
 
 def update_pedido(db: Session, pedido_id: int, pedido: PedidoUpdate, current_user: Usuario) -> Pedido:
-    """Update an order"""
+    """Actualizar un pedido"""
     from app.core.enums import RolUsuario
     
     db_pedido = get_pedido_by_id(db, pedido_id, current_user)
     
-    # Check permissions for waiters
+    # Verificar permisos para camareros
     if current_user.rol == RolUsuario.CAMARERO and db_pedido.camarero_id != current_user.id:
         raise HTTPException(
             status_code=403,
             detail="No tiene permisos para actualizar este pedido"
         )
     
-    # Cooks can only change status to en_preparacion or listo
+    # Los cocineros solo pueden cambiar el estado a 'en_preparacion' o 'listo'
     if current_user.rol == RolUsuario.COCINERO:
         if pedido.estado not in [EstadoPedido.EN_PREPARACION, EstadoPedido.LISTO]:
             raise HTTPException(
@@ -171,33 +171,14 @@ def update_pedido(db: Session, pedido_id: int, pedido: PedidoUpdate, current_use
                 detail="Los cocineros solo pueden cambiar el estado a 'en_preparacion' o 'listo'"
             )
     
-    # Update fields
+    # Actualizar campos
     for key, value in pedido.model_dump(exclude_unset=True).items():
         setattr(db_pedido, key, value)
-    
-    # Si el estado cambia a entregado o cancelado, se permite que la mesa se libere
-    # Ahora TODOS los usuarios (incluidos los camareros) pueden cambiar el estado de una mesa a LIBRE
-    # cuando se han entregado todos los pedidos de la mesa
-    if pedido.estado in [EstadoPedido.ENTREGADO, EstadoPedido.CANCELADO]:
-        db_mesa = db_pedido.mesa
-        if db_mesa.estado == EstadoMesa.OCUPADA:
-            # Check if there are other active orders for this table
-            otros_pedidos_activos = db.query(Pedido).filter(
-                Pedido.mesa_id == db_mesa.id,
-                Pedido.id != pedido_id,
-                Pedido.estado.in_([EstadoPedido.RECIBIDO, EstadoPedido.EN_PREPARACION, EstadoPedido.LISTO])
-            ).count()
-            
-            if otros_pedidos_activos == 0:
-                db_mesa.estado = EstadoMesa.LIBRE
-                
-                # Registrar en log el cambio de estado y el usuario que lo hizo
-                log_event(f"Mesa {db_mesa.id} (#{db_mesa.numero}) cambiada a LIBRE por {current_user.username} [{current_user.rol}] al entregar el pedido {pedido_id}", "info")
     
     db.commit()
     db.refresh(db_pedido)
     
-    # Notify about order update
+    # Notificar sobre la actualización del pedido
     mensaje = {
         "tipo": "actualizacion_pedido",
         "pedido_id": db_pedido.id,
@@ -207,10 +188,10 @@ def update_pedido(db: Session, pedido_id: int, pedido: PedidoUpdate, current_use
     }
     
     if current_user.rol == RolUsuario.COCINERO:
-        # If cook changes status, notify waiters
+        # Si el cocinero cambia el estado, notificar a los camareros
         safe_broadcast(mensaje, "camareros")
     else:
-        # If waiter/admin changes status, notify kitchen
+        # Si el camarero o el administrador cambia el estado, notificar a la cocina
         safe_broadcast(mensaje, "cocina")
     
     return db_pedido
@@ -222,27 +203,27 @@ def update_detalle_pedido(
     detalle: DetallePedidoUpdate, 
     current_user: Usuario
 ) -> DetallePedido:
-    """Update an order detail"""
+    """Actualizar un detalle del pedido"""
     from app.core.enums import RolUsuario
     
-    # Verify order exists
+    # Verificar si el pedido existe
     db_pedido = get_pedido_by_id(db, pedido_id, current_user)
     
-    # Check permissions for waiters
+    # Verificar permisos para camareros
     if current_user.rol == RolUsuario.CAMARERO and db_pedido.camarero_id != current_user.id:
         raise HTTPException(
             status_code=403,
             detail="No tiene permisos para actualizar este pedido"
         )
     
-    # Check if order is not already delivered or canceled
+    # Verificar si el pedido no está ya entregado o cancelado
     if db_pedido.estado in [EstadoPedido.ENTREGADO, EstadoPedido.CANCELADO]:
         raise HTTPException(
             status_code=400,
             detail="No se puede modificar un pedido entregado o cancelado"
         )
     
-    # Verify order detail exists and belongs to order
+    # Verificar si el detalle del pedido existe y pertenece al pedido
     db_detalle = db.query(DetallePedido).filter(
         DetallePedido.id == detalle_id,
         DetallePedido.pedido_id == pedido_id
@@ -251,7 +232,7 @@ def update_detalle_pedido(
     if db_detalle is None:
         raise HTTPException(status_code=404, detail="Detalle de pedido no encontrado")
     
-    # Cooks can only change status
+    # Los cocineros solo pueden cambiar el estado
     if current_user.rol == RolUsuario.COCINERO:
         if detalle.estado is None:
             raise HTTPException(
@@ -267,16 +248,16 @@ def update_detalle_pedido(
         
         db_detalle.estado = detalle.estado
     else:
-        # Waiters and admins can update everything
+        # Los camareros y los administradores pueden actualizar todo
         if detalle.cantidad is not None:
             if detalle.cantidad <= 0:
                 raise HTTPException(status_code=400, detail="La cantidad debe ser mayor que cero")
             
-            # Recalculate subtotal
+            # Recalcular el subtotal
             db_detalle.cantidad = detalle.cantidad
             db_detalle.subtotal = db_detalle.precio_unitario * detalle.cantidad
             
-            # Update order total
+            # Actualizar total del pedido
             nuevo_total = db.query(func.sum(DetallePedido.subtotal)).filter(
                 DetallePedido.pedido_id == pedido_id
             ).scalar() or 0.0
@@ -289,13 +270,13 @@ def update_detalle_pedido(
         if detalle.observaciones is not None:
             db_detalle.observaciones = detalle.observaciones
     
-    # Update order update timestamp
+    # Actualizar la marca de tiempo de actualización del pedido
     db_pedido.fecha_actualizacion = datetime.now(UTC)
     
     db.commit()
     db.refresh(db_detalle)
     
-    # Notify about detail update
+    # Notificar sobre la actualización del detalle
     mensaje = {
         "tipo": "actualizacion_detalle",
         "pedido_id": db_pedido.id,
@@ -319,27 +300,27 @@ def create_detalle_pedido(
     detalle: DetallePedidoCreate, 
     current_user: Usuario
 ) -> DetallePedido:
-    """Add a new detail to an existing order"""
+    """Agregar un nuevo detalle a un pedido existente"""
     from app.core.enums import RolUsuario
     
-    # Verify order exists
+    # Verificar si el pedido existe
     db_pedido = get_pedido_by_id(db, pedido_id, current_user)
     
-    # Check permissions for waiters
+    # Verificar permisos para camareros
     if current_user.rol == RolUsuario.CAMARERO and db_pedido.camarero_id != current_user.id:
         raise HTTPException(
             status_code=403,
             detail="No tiene permisos para modificar este pedido"
         )
     
-    # Check if order is not already delivered or canceled
+    # Verificar si el pedido no está ya entregado o cancelado
     if db_pedido.estado in [EstadoPedido.ENTREGADO, EstadoPedido.CANCELADO]:
         raise HTTPException(
             status_code=400,
             detail="No se puede modificar un pedido entregado o cancelado"
         )
     
-    # Verify product exists and is available
+    # Verificar si el producto existe y está disponible
     db_producto = db.query(Producto).filter(
         Producto.id == detalle.producto_id,
         Producto.disponible == True
@@ -348,7 +329,7 @@ def create_detalle_pedido(
     if db_producto is None:
         raise HTTPException(status_code=404, detail="Producto no encontrado o no disponible")
     
-    # Create order detail
+    # Crear detalle del pedido
     subtotal = db_producto.precio * detalle.cantidad
     db_detalle = DetallePedido(
         pedido_id=pedido_id,
@@ -360,16 +341,16 @@ def create_detalle_pedido(
     )
     db.add(db_detalle)
     
-    # Update order total
+    # Actualizar total del pedido
     db_pedido.total += subtotal
     
-    # Update order update timestamp
+    # Actualizar la marca de tiempo de actualización del pedido
     db_pedido.fecha_actualizacion = datetime.now(UTC)
     
     db.commit()
     db.refresh(db_detalle)
     
-    # Notify kitchen about new detail
+    # Notificar a la cocina sobre el nuevo detalle
     mensaje = {
         "tipo": "nuevo_detalle",
         "pedido_id": db_pedido.id,
@@ -389,27 +370,27 @@ def delete_detalle_pedido(
     detalle_id: int, 
     current_user: Usuario
 ) -> None:
-    """Delete an order detail"""
+    """Eliminar un detalle del pedido"""
     from app.core.enums import RolUsuario
     
-    # Verify order exists
+    # Verificar si el pedido existe
     db_pedido = get_pedido_by_id(db, pedido_id, current_user)
     
-    # Check permissions for waiters
+    # Verificar permisos para camareros
     if current_user.rol == RolUsuario.CAMARERO and db_pedido.camarero_id != current_user.id:
         raise HTTPException(
             status_code=403,
             detail="No tiene permisos para modificar este pedido"
         )
     
-    # Check if order is not already delivered or canceled
+    # Verificar si el pedido no está ya entregado o cancelado
     if db_pedido.estado in [EstadoPedido.ENTREGADO, EstadoPedido.CANCELADO]:
         raise HTTPException(
             status_code=400,
             detail="No se puede modificar un pedido entregado o cancelado"
         )
     
-    # Verify order detail exists and belongs to order
+    # Verificar si el detalle del pedido existe y pertenece al pedido
     db_detalle = db.query(DetallePedido).filter(
         DetallePedido.id == detalle_id,
         DetallePedido.pedido_id == pedido_id
@@ -418,7 +399,7 @@ def delete_detalle_pedido(
     if db_detalle is None:
         raise HTTPException(status_code=404, detail="Detalle de pedido no encontrado")
     
-    # Check if it's not the last detail in the order
+    # Verificar si no es el último detalle en el pedido
     cantidad_detalles = db.query(DetallePedido).filter(
         DetallePedido.pedido_id == pedido_id
     ).count()
@@ -429,22 +410,22 @@ def delete_detalle_pedido(
             detail="No se puede eliminar el último producto del pedido. Cancele el pedido completo."
         )
     
-    # Update order total
+    # Actualizar total del pedido
     db_pedido.total -= db_detalle.subtotal
     
-    # Save info for notification
+    # Guardar información para la notificación
     producto_nombre = db_detalle.producto.nombre
     mesa_numero = db_pedido.mesa.numero
     
-    # Delete detail
+    # Eliminar detalle
     db.delete(db_detalle)
     
-    # Update order update timestamp
+    # Actualizar la marca de tiempo de actualización del pedido
     db_pedido.fecha_actualizacion = datetime.now(UTC)
     
     db.commit()
     
-    # Notify kitchen about deleted detail
+    # Notificar a la cocina sobre la eliminación del detalle
     mensaje = {
         "tipo": "eliminar_detalle",
         "pedido_id": pedido_id,

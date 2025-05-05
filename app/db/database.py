@@ -1,5 +1,5 @@
 """
-Database session configuration.
+Configuración de la sesión de la base de datos.
 """
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -7,22 +7,22 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import SQLALCHEMY_DATABASE_URL
 
-# Create database engine
+# Crear el motor de la base de datos
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
 
-# Create sessionmaker
+# Crear el sessionmaker
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create base class for models
+# Crear la clase base para los modelos
 Base = declarative_base()
 
-# Dependency to get DB session
+# Dependencia para obtener la sesión de la base de datos
 def get_db():
     """
-    Dependency function that provides a SQLAlchemy session.
-    Yields a session and ensures it gets closed after use.
+    Función de dependencia que proporciona una sesión de SQLAlchemy.
+    Devuelve una sesión y asegura que se cierre después de su uso.
     """
     db = SessionLocal()
     try:

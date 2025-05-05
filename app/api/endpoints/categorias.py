@@ -1,5 +1,5 @@
 """
-Category management endpoints.
+Endpoints de gestión de categorías.
 """
 from typing import List
 from fastapi import APIRouter, Depends, status
@@ -9,12 +9,11 @@ from app.db.database import get_db
 from app.models.usuario import Usuario
 from app.schemas.categoria import CategoriaCreate, CategoriaUpdate, CategoriaResponse
 from app.services import categoria_service
-from app.api.dependencies.auth import get_usuario_actual, get_admin_actual
+from app.api.dependencies.auth import get_usuario_actual, get_admin_actual, get_camarero_actual
 
 router = APIRouter(
     prefix="/categorias",
-    tags=["categorías"],
-    dependencies=[Depends(get_usuario_actual)]
+    tags=["categorías"]
 )
 
 @router.post("/", response_model=CategoriaResponse, status_code=status.HTTP_201_CREATED)
@@ -24,7 +23,7 @@ def create_categoria(
     admin: Usuario = Depends(get_admin_actual)
 ):
     """
-    Create a new category. (Admin only)
+    Crear una nueva categoría. (Admin only)
     """
     return categoria_service.create_categoria(db=db, categoria=categoria)
 
@@ -32,11 +31,10 @@ def create_categoria(
 def read_categorias(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_usuario_actual)
+    db: Session = Depends(get_db)
 ):
     """
-    Get all categories.
+    Obtener todas las categorías. (Acceso público para pruebas)
     """
     categorias = categoria_service.get_categorias(db, skip=skip, limit=limit)
     return categorias
@@ -44,11 +42,10 @@ def read_categorias(
 @router.get("/{categoria_id}", response_model=CategoriaResponse)
 def read_categoria(
     categoria_id: int,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_usuario_actual)
+    db: Session = Depends(get_db)
 ):
     """
-    Get a specific category by ID.
+    Obtener una categoría específica por ID. (Acceso público para pruebas)
     """
     return categoria_service.get_categoria_by_id(db, categoria_id=categoria_id)
 
@@ -60,7 +57,7 @@ def update_categoria(
     admin: Usuario = Depends(get_admin_actual)
 ):
     """
-    Update a category. (Admin only)
+    Actualizar una categoría. (Admin only)
     """
     return categoria_service.update_categoria(db=db, categoria_id=categoria_id, categoria=categoria)
 
@@ -71,7 +68,7 @@ def delete_categoria(
     admin: Usuario = Depends(get_admin_actual)
 ):
     """
-    Delete a category. (Admin only)
+    Eliminar una categoría. (Admin only)
     """
     categoria_service.delete_categoria(db=db, categoria_id=categoria_id)
     return {} 

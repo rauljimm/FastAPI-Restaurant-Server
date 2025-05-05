@@ -1,5 +1,5 @@
 """
-Table management endpoints.
+Endpoints de gestión de mesas.
 """
 from typing import List, Optional
 from fastapi import APIRouter, Depends, status, Query, HTTPException
@@ -11,6 +11,9 @@ from app.schemas.mesa import MesaCreate, MesaUpdate, MesaResponse
 from app.services import mesa_service
 from app.api.dependencies.auth import get_usuario_actual, get_admin_actual, get_camarero_actual
 from app.core.enums import EstadoMesa, RolUsuario
+from app.models.reserva import Reserva
+from app.core.enums import EstadoReserva
+from app.schemas.reserva import ReservaResponse
 
 router = APIRouter(
     prefix="/mesas",
@@ -25,9 +28,9 @@ def create_mesa(
     admin: Usuario = Depends(get_admin_actual)
 ):
     """
-    Create a new table. (Admin only)
+    Crear una nueva mesa. (Administradores)
     """
-    return mesa_service.create_mesa(db=db, mesa=mesa)
+    return mesa_service.create_mesa(db=db, mesa=mesa, current_user=admin)
 
 @router.get("/", response_model=List[MesaResponse])
 def read_mesas(
@@ -38,7 +41,7 @@ def read_mesas(
     current_user: Usuario = Depends(get_usuario_actual)
 ):
     """
-    Get all tables with optional filters.
+    Obtener todas las mesas con filtros opcionales.
     """
     mesas = mesa_service.get_mesas(
         db, 
@@ -55,9 +58,33 @@ def read_mesa(
     current_user: Usuario = Depends(get_usuario_actual)
 ):
     """
-    Get a specific table by ID.
+    Obtener detalles de una mesa específica.
     """
-    return mesa_service.get_mesa_by_id(db, mesa_id=mesa_id)
+    return mesa_service.get_mesa_by_id(db=db, mesa_id=mesa_id)
+
+@router.get("/{mesa_id}/reserva-activa", response_model=ReservaResponse)
+def get_reserva_activa(
+    mesa_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_usuario_actual)
+):
+    """
+    Obtener la reserva activa para una mesa específica.
+    """
+    from datetime import datetime, timedelta, UTC
+    
+    # Buscar reservas pendientes o confirmadas para esta mesa
+    reservas = db.query(Reserva).filter(
+        Reserva.mesa_id == mesa_id,
+        Reserva.estado.in_([EstadoReserva.PENDIENTE, EstadoReserva.CONFIRMADA]),
+        Reserva.fecha > datetime.now(UTC) - timedelta(hours=2),  # Incluir reservas de hasta 2 horas antes
+        Reserva.fecha < datetime.now(UTC) + timedelta(hours=2)   # Solo reservas recientes o próximas
+    ).order_by(Reserva.fecha).first()
+    
+    if not reservas:
+        raise HTTPException(status_code=404, detail="No hay reservas activas para esta mesa")
+    
+    return reservas
 
 @router.put("/{mesa_id}", response_model=MesaResponse)
 def update_mesa(
@@ -67,33 +94,21 @@ def update_mesa(
     current_user: Usuario = Depends(get_usuario_actual)
 ):
     """
-    Update a table.
-    - Admins can perform any update
-    - Waiters can change the status of tables to any value
+    Actualizar una mesa.
+    - Camareros pueden cambiar el estado
+    - Administradores pueden cambiar cualquier campo
     """
-    # Si es admin o camarero, puede realizar cualquier actualización de estado
-    if current_user.rol == RolUsuario.ADMIN or current_user.rol == RolUsuario.CAMARERO:
-        # Registrar la acción en el log
-        from app.core.websockets import log_event
-        log_event(f"Usuario {current_user.username} [{current_user.rol}] está cambiando el estado de la mesa {mesa_id} a '{mesa.estado}'", "info")
-        
-        return mesa_service.update_mesa(db=db, mesa_id=mesa_id, mesa=mesa)
-    
-    # Cualquier otro rol no tiene permisos
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tiene permisos para realizar esta acción"
-        )
+    return mesa_service.update_mesa(db=db, mesa_id=mesa_id, mesa=mesa, current_user=current_user)
 
-@router.delete("/{mesa_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+@router.delete("/{mesa_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_mesa(
     mesa_id: int,
     db: Session = Depends(get_db),
     admin: Usuario = Depends(get_admin_actual)
 ):
     """
-    Delete a table. (Admin only)
+    Eliminar una mesa. (Administradores)
+    La mesa no debe tener pedidos activos ni reservas futuras.
     """
-    mesa_service.delete_mesa(db=db, mesa_id=mesa_id)
-    return {} 
+    mesa_service.delete_mesa(db=db, mesa_id=mesa_id, current_user=admin)
+    return None 

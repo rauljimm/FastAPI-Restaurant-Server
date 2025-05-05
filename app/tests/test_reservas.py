@@ -249,10 +249,17 @@ class TestReservas:
         )
         assert get_response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_delete_reserva_unauthorized(self, client, camarero_user, reserva):
-        """Test that non-admin users cannot delete reservations."""
+    def test_delete_reserva_by_camarero(self, client, camarero_user, reserva):
+        """Test that camareros can delete reservations (updated permission)."""
         response = client.delete(
             f"/reservas/{reserva['id']}",
             headers={"Authorization": f"Bearer {camarero_user['token']}"}
         )
-        assert response.status_code == status.HTTP_403_FORBIDDEN 
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        
+        # Verify the reservation is deleted
+        get_response = client.get(
+            f"/reservas/{reserva['id']}",
+            headers={"Authorization": f"Bearer {camarero_user['token']}"}
+        )
+        assert get_response.status_code == status.HTTP_404_NOT_FOUND 

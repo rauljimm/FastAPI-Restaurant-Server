@@ -11,7 +11,7 @@ DESCRIPTION: str = "Sistema para coordinar operaciones entre camareros, cocinero
 VERSION: str = "1.0.0"
 
 # CORS configuration
-ALLOWED_ORIGINS: List[str] = ["*"]  # En producción, especificar dominios exactos
+ALLOWED_ORIGINS: List[str] = ["*"]  
 ALLOWED_METHODS: List[str] = ["*"]
 ALLOWED_HEADERS: List[str] = ["*"]
 
@@ -20,7 +20,7 @@ SQLALCHEMY_DATABASE_URL: str = "sqlite:///./restaurante.db"
 SQLALCHEMY_TEST_DATABASE_URL: str = "sqlite:///./test_restaurante.db"
 
 # Authentication configuration
-JWT_SECRET_KEY: str = "clave_super_secreta"  # En producción, usar variable de entorno
+JWT_SECRET_KEY: str = "clave_super_secreta"  
 JWT_ALGORITHM: str = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 horas
 TOKEN_URL: str = "/token" 

@@ -1,3 +1,3 @@
 """
-Dependencies for API endpoints.
+Dependencias para los endpoints de la API.
 """ 

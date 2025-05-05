@@ -10,39 +10,39 @@ router = APIRouter(tags=["websockets"])
 
 @router.websocket("/ws/cocina")
 async def websocket_cocina(websocket: WebSocket):
-    """WebSocket connection for kitchen staff"""
+    """Conexión WebSocket para el personal de la cocina"""
     await manager.connect(websocket, "cocina")
     try:
         while True:
-            # Wait for messages from the client
+            # Esperar mensajes del cliente
             data = await websocket.receive_text()
-            # Echo message back for now
+
             await manager.send_personal_message(f"Mensaje recibido: {data}", websocket)
     except WebSocketDisconnect:
         manager.disconnect(websocket, "cocina")
 
 @router.websocket("/ws/camareros")
 async def websocket_camareros(websocket: WebSocket):
-    """WebSocket connection for waiters"""
+    """Conexión WebSocket para los camareros"""
     await manager.connect(websocket, "camareros")
     try:
         while True:
-            # Wait for messages from the client
+            # Esperar mensajes del cliente
             data = await websocket.receive_text()
-            # Echo message back for now
+
             await manager.send_personal_message(f"Mensaje recibido: {data}", websocket)
     except WebSocketDisconnect:
         manager.disconnect(websocket, "camareros")
 
 @router.websocket("/ws/admin")
 async def websocket_admin(websocket: WebSocket):
-    """WebSocket connection for administrators"""
+    """Conexión WebSocket para los administradores"""
     await manager.connect(websocket, "admin")
     try:
         while True:
-            # Wait for messages from the client
+            # Esperar mensajes del cliente
             data = await websocket.receive_text()
-            # Echo message back for now
+
             await manager.send_personal_message(f"Mensaje recibido: {data}", websocket)
     except WebSocketDisconnect:
         manager.disconnect(websocket, "admin") 

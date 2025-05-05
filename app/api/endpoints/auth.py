@@ -29,7 +29,7 @@ async def login_for_access_token(
     db: Session = Depends(get_db)
 ):
     """
-    Authenticate a user and return an access token.
+    Autenticar a un usuario y devolver un token de acceso.
     """
     try:
         # Log de la solicitud recibida
@@ -51,7 +51,7 @@ async def login_for_access_token(
         raise
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
-        # Handle any unexpected errors
+        # Manejar cualquier error inesperado
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error de autenticación: {str(e)}"
@@ -63,7 +63,7 @@ async def login_json(
     db: Session = Depends(get_db)
 ):
     """
-    Authenticate a user with JSON credentials and return an access token.
+    Autenticar a un usuario con credenciales JSON y devolver un token de acceso.
     """
     try:
         logger.debug(f"Login JSON - username: {login_data.username}")
@@ -82,7 +82,7 @@ async def login_json(
         raise
     except Exception as e:
         logger.error(f"Error inesperado: {str(e)}")
-        # Handle any unexpected errors
+        # Manejar cualquier error inesperado
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error de autenticación: {str(e)}"

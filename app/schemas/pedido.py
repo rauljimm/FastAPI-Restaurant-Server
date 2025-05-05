@@ -1,9 +1,9 @@
 """
 Esquemas Pydantic para Pedido y DetallePedido.
 """
-from typing import List, Optional
+from typing import List, Optional, Any
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from app.core.enums import EstadoPedido
 from app.schemas.mesa import MesaResponse
@@ -63,7 +63,7 @@ class PedidoUpdate(BaseModel):
 class PedidoResponse(BaseModel):
     """Esquema para datos de respuesta de pedido"""
     id: int
-    mesa_id: int
+    mesa_id: Optional[int] = None
     camarero_id: int
     estado: str
     fecha_creacion: datetime
@@ -77,8 +77,15 @@ class PedidoResponse(BaseModel):
 class PedidoDetallado(PedidoResponse):
     """Esquema para respuesta detallada de pedido incluyendo datos relacionados"""
     detalles: List[DetallePedidoDetallado]
-    mesa: MesaResponse
+    mesa: Optional[MesaResponse] = None
     camarero: UsuarioResponse
+    
+    @validator('mesa', pre=True)
+    def validate_mesa(cls, v, values):
+        """Si mesa_id es None, la mesa también debe ser None"""
+        if 'mesa_id' in values and values['mesa_id'] is None:
+            return None
+        return v
     
     class Config:
         from_attributes = True 
