@@ -12,7 +12,7 @@ from app.models.mesa import Mesa
 from app.models.usuario import Usuario
 from app.models.producto import Producto
 from app.schemas.pedido import PedidoCreate, PedidoUpdate, DetallePedidoCreate, DetallePedidoUpdate
-from app.core.enums import EstadoPedido, EstadoMesa
+from app.core.enums import EstadoPedido, EstadoMesa, RolUsuario
 from app.core.websockets import safe_broadcast, log_event
 
 def get_pedidos(
@@ -73,6 +73,13 @@ def get_pedido_by_id(db: Session, pedido_id: int, current_user: Usuario = None) 
                 status_code=403,
                 detail="No tiene permisos para ver este pedido"
             )
+    
+    # Verificar que los productos de los detalles aún existen o manejar si han sido eliminados
+    for detalle in pedido.detalles:
+        if detalle.producto is None:
+            # El producto ya no existe, establecer producto_id a 0 para evitar errores
+            # Esto es un parche temporal hasta que se limpien los datos de la BD
+            detalle.producto_id = 0
     
     return pedido
 
@@ -434,4 +441,60 @@ def delete_detalle_pedido(
         "mesa": mesa_numero,
         "hora": datetime.now(UTC).isoformat()
     }
-    safe_broadcast(mensaje, "cocina") 
+    safe_broadcast(mensaje, "cocina")
+
+def delete_pedido(db: Session, pedido_id: int, current_user: Usuario) -> None:
+    """Eliminar un pedido completo (solo para pedidos no entregados)"""
+    # Obtener el pedido
+    db_pedido = get_pedido_by_id(db, pedido_id, current_user)
+    
+    # Verificar permisos
+    if current_user.rol == RolUsuario.CAMARERO and db_pedido.camarero_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="No tiene permisos para eliminar este pedido"
+        )
+    
+    # Verificar que no sea un pedido entregado
+    if db_pedido.estado == EstadoPedido.ENTREGADO:
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede eliminar un pedido ya entregado"
+        )
+    
+    # Si el pedido tiene mesa asignada, actualizarla a LIBRE si no hay otros pedidos activos
+    if db_pedido.mesa_id is not None:
+        mesa = db.query(Mesa).filter(Mesa.id == db_pedido.mesa_id).first()
+        if mesa:
+            # Verificar si hay otros pedidos activos para esta mesa
+            otros_pedidos = db.query(Pedido).filter(
+                Pedido.mesa_id == mesa.id,
+                Pedido.id != pedido_id,
+                Pedido.estado.in_([EstadoPedido.RECIBIDO, EstadoPedido.EN_PREPARACION, EstadoPedido.LISTO])
+            ).count()
+            
+            if otros_pedidos == 0:
+                # Si no hay otros pedidos activos, establecer la mesa como libre
+                mesa.estado = EstadoMesa.LIBRE
+                db.commit()
+    
+    # Eliminar todos los detalles del pedido
+    db.query(DetallePedido).filter(DetallePedido.pedido_id == pedido_id).delete()
+    
+    # Eliminar el pedido
+    db.delete(db_pedido)
+    db.commit()
+    
+    # Notificar a los usuarios sobre la eliminación del pedido
+    mensaje = {
+        "tipo": "pedido_eliminado",
+        "pedido_id": pedido_id,
+        "hora": datetime.now(UTC).isoformat()
+    }
+    
+    # Notificar a todos los usuarios
+    safe_broadcast(mensaje, "camareros")
+    safe_broadcast(mensaje, "cocina")
+    
+    # Registrar el evento
+    log_event(f"Pedido #{pedido_id} eliminado por {current_user.nombre} {current_user.apellido} (rol: {current_user.rol})") 

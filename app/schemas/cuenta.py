@@ -3,7 +3,7 @@ Esquemas Pydantic para Cuenta.
 """
 from typing import Dict, List, Optional, Any, Union
 from datetime import datetime
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 import json
 
 class DetalleCuentaItem(BaseModel):
@@ -15,6 +15,7 @@ class DetalleCuentaItem(BaseModel):
     precio_unitario: float
     subtotal: float
     observaciones: Optional[str] = None
+    producto_eliminado: Optional[bool] = False
 
 class CuentaBase(BaseModel):
     """Esquema base para datos de cuenta"""
@@ -40,11 +41,9 @@ class CuentaResponse(CuentaBase):
     camarero_id: Optional[int] = None
     fecha_cobro: datetime
     
-    class Config:
-        """Configuración para el esquema"""
-        orm_mode = True
-        
-    @validator('detalles', pre=True)
+    model_config = {"from_attributes": True}
+    
+    @field_validator('detalles', mode='before')
     def parse_detalles(cls, v):
         """
         Validador para asegurar que detalles sea una lista de diccionarios.

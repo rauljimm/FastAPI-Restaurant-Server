@@ -2,7 +2,7 @@
 Endpoints de gestión de pedidos.
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -88,7 +88,21 @@ def read_pedido(
     - Los camareros solo pueden ver sus propios pedidos
     - Los administradores y cocineros pueden ver cualquier pedido
     """
-    return pedido_service.get_pedido_by_id(db, pedido_id=pedido_id, current_user=current_user)
+    try:
+        # Llamada al servicio con manejo adecuado de errores
+        pedido = pedido_service.get_pedido_by_id(db, pedido_id=pedido_id, current_user=current_user)
+        return pedido
+    except HTTPException as e:
+        # Re-lanzar excepciones HTTP ya manejadas
+        raise e
+    except Exception as e:
+        # Loguear el error y devolver un mensaje amigable
+        import logging
+        logging.error(f"Error al obtener pedido {pedido_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno al obtener detalles del pedido: {str(e)}"
+        )
 
 @router.put("/{pedido_id}", response_model=PedidoResponse)
 def update_pedido(
@@ -163,6 +177,23 @@ def delete_detalle_pedido(
         db=db, 
         pedido_id=pedido_id, 
         detalle_id=detalle_id, 
+        current_user=camarero
+    )
+    return {}
+
+@router.delete("/{pedido_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+def delete_pedido(
+    pedido_id: int,
+    db: Session = Depends(get_db),
+    camarero: Usuario = Depends(get_camarero_actual)
+):
+    """
+    Eliminar un pedido completo. (Camareros/Administradores solo)
+    Solo se pueden eliminar pedidos que no estén en estado ENTREGADO.
+    """
+    pedido_service.delete_pedido(
+        db=db, 
+        pedido_id=pedido_id, 
         current_user=camarero
     )
     return {} 

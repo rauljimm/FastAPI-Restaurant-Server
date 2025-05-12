@@ -129,7 +129,7 @@ def create_cuenta(
             raise HTTPException(status_code=404, detail="Mesa no encontrada")
     
     # Convertir lista de detalles a JSON
-    detalles_json = json.dumps([item.dict() for item in cuenta.detalles])
+    detalles_json = json.dumps([item.model_dump() for item in cuenta.detalles])
     
     # Crear la nueva cuenta
     db_cuenta = Cuenta(
@@ -317,4 +317,22 @@ def generar_cuenta_desde_pedidos(
             "nombre_camarero": "Error al generar cuenta",
             "total": 0,
             "detalles": []
-        } 
+        }
+
+def delete_cuenta(db: Session, cuenta_id: int, current_user: Usuario) -> None:
+    """Eliminar una cuenta por su ID"""
+    # Obtener la cuenta y verificar permisos
+    db_cuenta = get_cuenta_by_id(db, cuenta_id, current_user)
+    
+    # Solo admin puede eliminar cuentas
+    if current_user.rol != RolUsuario.ADMIN:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo los administradores pueden eliminar cuentas"
+        )
+    
+    # Eliminar la cuenta
+    db.delete(db_cuenta)
+    db.commit()
+    
+    return None 

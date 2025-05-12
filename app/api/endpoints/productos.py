@@ -38,7 +38,7 @@ def read_productos(
     db: Session = Depends(get_db)
 ):
     """
-    Obtener todos los productos con filtros opcionales. (Acceso público para pruebas)
+    Obtener todos los productos con filtros opcionales.
     """
     productos = producto_service.get_productos(
         db, 
@@ -56,7 +56,7 @@ def read_producto(
     db: Session = Depends(get_db)
 ):
     """
-    Obtener un producto específico por ID incluyendo su categoría. (Acceso público para pruebas)
+    Obtener un producto específico por ID incluyendo su categoría.
     """
     return producto_service.get_producto_by_id(db, producto_id=producto_id)
 

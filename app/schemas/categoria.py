@@ -22,5 +22,4 @@ class CategoriaResponse(CategoriaBase):
     """Esquema para datos de respuesta de categoría"""
     id: int
     
-    class Config:
-        from_attributes = True 
+    model_config = {"from_attributes": True} 

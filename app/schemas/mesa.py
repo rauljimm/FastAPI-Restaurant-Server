@@ -29,13 +29,9 @@ class Mesa(MesaBase):
     id: int
     estado: EstadoMesa
     
-    class Config:
-        """Configuración para el esquema"""
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 class MesaResponse(Mesa):
     """Esquema para la respuesta completa de mesa"""
     # Incluye todos los campos de Mesa
-    class Config:
-        """Configuración para el esquema"""
-        orm_mode = True 
+    model_config = {"from_attributes": True} 

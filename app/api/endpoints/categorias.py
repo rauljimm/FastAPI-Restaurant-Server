@@ -34,7 +34,7 @@ def read_categorias(
     db: Session = Depends(get_db)
 ):
     """
-    Obtener todas las categorías. (Acceso público para pruebas)
+    Obtener todas las categorías.
     """
     categorias = categoria_service.get_categorias(db, skip=skip, limit=limit)
     return categorias
@@ -45,7 +45,7 @@ def read_categoria(
     db: Session = Depends(get_db)
 ):
     """
-    Obtener una categoría específica por ID. (Acceso público para pruebas)
+    Obtener una categoría específica por ID.
     """
     return categoria_service.get_categoria_by_id(db, categoria_id=categoria_id)
 

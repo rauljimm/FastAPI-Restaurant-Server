@@ -127,4 +127,20 @@ def generar_cuenta_mesa(
         db=db,
         mesa_id=mesa_id,
         camarero_id=camarero.id
-    ) 
+    )
+
+@router.delete("/{cuenta_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_cuenta(
+    cuenta_id: int,
+    db: Session = Depends(get_db),
+    admin: Usuario = Depends(get_admin_actual)
+):
+    """
+    Eliminar una cuenta del sistema. Solo administradores pueden realizar esta acción.
+    """
+    cuenta_service.delete_cuenta(
+        db=db,
+        cuenta_id=cuenta_id,
+        current_user=admin
+    )
+    return {} 

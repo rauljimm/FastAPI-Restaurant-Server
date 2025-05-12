@@ -111,6 +111,60 @@ def delete_producto(db: Session, producto_id: int) -> None:
             detail=f"No se puede eliminar el producto porque está en {pedidos_activos} pedidos activos"
         )
     
+    # Para pedidos históricos (entregados o cancelados), mantener la referencia pero evitar errores de FK
+    detalles_historicos = db.query(DetallePedido).join(Pedido).filter(
+        DetallePedido.producto_id == producto_id,
+        Pedido.estado.in_([EstadoPedido.ENTREGADO, EstadoPedido.CANCELADO, EstadoPedido.LISTO])
+    ).all()
+    
+    # Conservar información del producto para pedidos históricos
+    nombre_producto = db_producto.nombre
+    precio_producto = db_producto.precio
+    tipo_producto = db_producto.tipo
+    
+    # Crear una nota para cada detalle histórico
+    for detalle in detalles_historicos:
+        detalle_obs = detalle.observaciones or ""
+        detalle.observaciones = f"{detalle_obs}\n[Producto eliminado: {nombre_producto}, ${precio_producto}]".strip()
+        db.add(detalle)
+    
+    # Gestionar la referencia en el historial de cuentas
+    from app.models.cuenta import Cuenta
+    import json
+    
+    # Obtener todas las cuentas que podrían contener referencias al producto
+    cuentas = db.query(Cuenta).all()
+    for cuenta in cuentas:
+        # Procesar detalles de la cuenta (convertir de JSON si es necesario)
+        if isinstance(cuenta.detalles, str):
+            try:
+                detalles = json.loads(cuenta.detalles)
+            except json.JSONDecodeError:
+                detalles = []
+        else:
+            detalles = cuenta.detalles if cuenta.detalles else []
+        
+        # Verificar si hay cambios que hacer
+        modificado = False
+        
+        # Si detalles es una lista, procesar cada elemento
+        if isinstance(detalles, list):
+            for detalle in detalles:
+                # Si el detalle contiene el producto a eliminar, conservar la información
+                if isinstance(detalle, dict) and detalle.get('producto_id') == producto_id:
+                    # Marcar el producto como eliminado pero mantener sus datos
+                    detalle['producto_eliminado'] = True
+                    detalle['nombre_producto_original'] = nombre_producto
+                    modificado = True
+        
+        # Si hubo modificaciones, guardar los cambios
+        if modificado:
+            cuenta.detalles = json.dumps(detalles)
+            db.add(cuenta)
+    
+    # Guardar los cambios en las cuentas y detalles antes de eliminar el producto
+    db.commit()
+    
     # Eliminar producto
     db.delete(db_producto)
     db.commit()

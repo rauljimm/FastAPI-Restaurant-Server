@@ -20,7 +20,7 @@ SQLALCHEMY_DATABASE_URL: str = "sqlite:///./restaurante.db"
 SQLALCHEMY_TEST_DATABASE_URL: str = "sqlite:///./test_restaurante.db"
 
 # Authentication configuration
-JWT_SECRET_KEY: str = "clave_super_secreta"  
+JWT_SECRET_KEY: str = "ASDFGHIJKLMNOPQRSTUVWXYZ1234567890"  
 JWT_ALGORITHM: str = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 horas
 TOKEN_URL: str = "/token" 

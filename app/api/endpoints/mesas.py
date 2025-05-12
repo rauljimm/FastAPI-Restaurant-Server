@@ -60,7 +60,28 @@ def read_mesa(
     """
     Obtener detalles de una mesa específica.
     """
-    return mesa_service.get_mesa_by_id(db=db, mesa_id=mesa_id)
+    try:
+        # Verificar permisos explícitamente
+        if current_user.rol not in [RolUsuario.ADMIN, RolUsuario.CAMARERO, RolUsuario.COCINERO]:
+            raise HTTPException(
+                status_code=403,
+                detail="No tiene permisos para ver detalles de mesas"
+            )
+            
+        # Obtener la mesa con manejo de errores mejorado
+        mesa = mesa_service.get_mesa_by_id(db=db, mesa_id=mesa_id)
+        return mesa
+    except HTTPException as e:
+        # Re-lanzar excepciones HTTP conocidas
+        raise e
+    except Exception as e:
+        # Loguear error y devolver mensaje amigable
+        import logging
+        logging.error(f"Error al obtener mesa {mesa_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno al obtener detalles de la mesa: {str(e)}"
+        )
 
 @router.get("/{mesa_id}/reserva-activa", response_model=ReservaResponse)
 def get_reserva_activa(

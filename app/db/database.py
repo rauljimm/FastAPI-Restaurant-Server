@@ -1,29 +1,25 @@
 """
-Configuración de la sesión de la base de datos.
+Configuración de la base de datos.
 """
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 from app.core.config import SQLALCHEMY_DATABASE_URL
 
-# Crear el motor de la base de datos
+# Crear motor de base de datos
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL, 
+    connect_args={"check_same_thread": False}  # SQLite, solo para desarrollo
 )
 
-# Crear el sessionmaker
+# Crear fábrica de sesiones
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Crear la clase base para los modelos
+# Clase base para modelos declarativos
 Base = declarative_base()
 
-# Dependencia para obtener la sesión de la base de datos
 def get_db():
-    """
-    Función de dependencia que proporciona una sesión de SQLAlchemy.
-    Devuelve una sesión y asegura que se cierre después de su uso.
-    """
+    """Dependencia para obtener una sesión de base de datos."""
     db = SessionLocal()
     try:
         yield db

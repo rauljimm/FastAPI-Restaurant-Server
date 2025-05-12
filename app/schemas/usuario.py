@@ -35,8 +35,7 @@ class UsuarioResponse(UsuarioBase):
     activo: bool
     fecha_creacion: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class Token(BaseModel):
     """Esquema para token de autenticación"""

@@ -13,8 +13,8 @@ class Pedido(Base):
     __tablename__ = "pedidos"
     
     id = Column(Integer, primary_key=True, index=True)
-    mesa_id = Column(Integer, ForeignKey("mesas.id"))
-    camarero_id = Column(Integer, ForeignKey("usuarios.id"))
+    mesa_id = Column(Integer, ForeignKey("mesas.id"), nullable=True)
+    camarero_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     estado = Column(String, default=EstadoPedido.RECIBIDO)
     fecha_creacion = Column(DateTime, default=datetime.now(UTC))
     fecha_actualizacion = Column(DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC))

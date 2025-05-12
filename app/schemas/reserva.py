@@ -43,12 +43,10 @@ class ReservaResponse(ReservaBase):
     estado: str
     fecha_creacion: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class ReservaDetallada(ReservaResponse):
     """Esquema para respuesta detallada de reserva incluyendo datos de mesa"""
     mesa: Optional[MesaResponse] = None
     
-    class Config:
-        from_attributes = True 
+    model_config = {"from_attributes": True} 

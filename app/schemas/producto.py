@@ -37,12 +37,19 @@ class ProductoResponse(ProductoBase):
     """Esquema para datos de respuesta de producto"""
     id: int
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
+
+class ProductoResponseSimple(BaseModel):
+    """Esquema simplificado para productos eliminados"""
+    id: int
+    nombre: str
+    precio: float
+    disponible: bool = False
+    
+    model_config = {"from_attributes": True}
 
 class ProductoDetallado(ProductoResponse):
     """Esquema para respuesta detallada de producto incluyendo datos de categoría"""
     categoria: CategoriaResponse
     
-    class Config:
-        from_attributes = True 
+    model_config = {"from_attributes": True} 
